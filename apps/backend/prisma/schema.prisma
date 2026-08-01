@@ -4,88 +4,127 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL") // connexion "pooled" (pgbouncer, port 6543) — utilisée à l'exécution
-  directUrl = env("DIRECT_URL")   // connexion directe (port 5432) — utilisée uniquement pour les migrations
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Tenant {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   name      String
-  slug      String   @unique
+  slug      String       @unique
   status    TenantStatus @default(TRIAL)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+
   users       User[]
   roles       Role[]
   license     License?
   auditLogs   AuditLog[]
   invitations Invitation[]
   accessCodes AccessCode[]
+
   @@map("tenants")
 }
 
-enum TenantStatus { TRIAL ACTIVE SUSPENDED CANCELLED }
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
 
 model License {
-  id        String      @id @default(uuid())
-  tenantId  String      @unique @map("tenant_id")
-  tenant    Tenant      @relation(fields: [tenantId], references: [id])
-  plan          LicensePlan   @default(TRIAL)
-  status        LicenseStatus @default(TRIAL)
-  seats         Int           @default(1)
-  seatsUsed     Int           @default(0) @map("seats_used")
-  features      Json          @default("[]")
-  isLifetime       Boolean   @default(false) @map("is_lifetime") // true = n'expire jamais (currentPeriodEnd ignoré)
+  id       String @id @default(uuid())
+  tenantId String @unique @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  plan      LicensePlan   @default(TRIAL)
+  status    LicenseStatus @default(TRIAL)
+  seats     Int           @default(1)
+  seatsUsed Int           @default(0) @map("seats_used")
+  features  Json          @default("[]")
+
+  isLifetime       Boolean   @default(false) @map("is_lifetime")
   trialEndsAt      DateTime? @map("trial_ends_at")
-  currentPeriodEnd DateTime? @map("current_period_end") // null + isLifetime=true => accès à vie
+  currentPeriodEnd DateTime? @map("current_period_end")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
   @@map("licenses")
 }
 
-enum LicensePlan { TRIAL STARTER PRO ENTERPRISE }
-enum LicenseStatus { TRIAL ACTIVE PAST_DUE SUSPENDED CANCELLED }
+enum LicensePlan {
+  TRIAL
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum LicenseStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+}
 
 model User {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("tenant_id")
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  email         String    @unique
-  phone         String?   @unique
-  passwordHash  String    @map("password_hash")
-  firstName     String    @map("first_name")
-  lastName      String    @map("last_name")
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  email        String  @unique
+  phone        String? @unique
+  passwordHash String  @map("password_hash")
+  firstName    String  @map("first_name")
+  lastName     String  @map("last_name")
+
   emailVerifiedAt DateTime? @map("email_verified_at")
   phoneVerifiedAt DateTime? @map("phone_verified_at")
-  status        UserStatus @default(PENDING)
-  mfaEnabled    Boolean    @default(false) @map("mfa_enabled")
-  mfaSecret     String?    @map("mfa_secret")
+
+  status     UserStatus @default(PENDING)
+  mfaEnabled Boolean    @default(false) @map("mfa_enabled")
+  mfaSecret  String?    @map("mfa_secret")
+
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   lockedUntil         DateTime? @map("locked_until")
+
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
-  roles      UserRole[]
-  sessions   Session[]
-  auditLogs  AuditLog[]
+
+  roles     UserRole[]
+  sessions  Session[]
+  auditLogs AuditLog[]
+
   @@index([tenantId])
   @@map("users")
 }
 
-enum UserStatus { PENDING ACTIVE DISABLED ARCHIVED }
+enum UserStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+  ARCHIVED
+}
 
 model Role {
-  id       String  @id @default(uuid())
-  tenantId String  @map("tenant_id")
-  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
   name        String
   description String?
   isSystem    Boolean @default(false) @map("is_system")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
   permissions RolePermission[]
   users       UserRole[]
+
   @@unique([tenantId, name])
   @@map("roles")
 }
@@ -96,15 +135,19 @@ model Permission {
   module      String
   action      String
   description String?
+
   roles RolePermission[]
+
   @@map("permissions")
 }
 
 model RolePermission {
   roleId       String @map("role_id")
   permissionId String @map("permission_id")
+
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
   @@id([roleId, permissionId])
   @@map("role_permissions")
 }
@@ -112,23 +155,28 @@ model RolePermission {
 model UserRole {
   userId String @map("user_id")
   roleId String @map("role_id")
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
   @@id([userId, roleId])
   @@map("user_roles")
 }
 
 model Session {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
-  refreshTokenHash String   @map("refresh_token_hash")
-  userAgent        String?  @map("user_agent")
-  ipAddress        String?  @map("ip_address")
-  createdAt      DateTime @default(now()) @map("created_at")
-  lastActivityAt DateTime @default(now()) @map("last_activity_at")
-  expiresAt      DateTime @map("expires_at")
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  refreshTokenHash String  @map("refresh_token_hash")
+  userAgent        String? @map("user_agent")
+  ipAddress        String? @map("ip_address")
+
+  createdAt      DateTime  @default(now()) @map("created_at")
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at")
+  expiresAt      DateTime  @map("expires_at")
   revokedAt      DateTime? @map("revoked_at")
+
   @@index([userId])
   @@map("sessions")
 }
@@ -137,12 +185,15 @@ model Invitation {
   id       String @id @default(uuid())
   tenantId String @map("tenant_id")
   tenant   Tenant @relation(fields: [tenantId], references: [id])
-  email     String
-  roleId    String?
-  token     String   @unique
-  expiresAt DateTime @map("expires_at")
+
+  email      String
+  roleId     String?
+  token      String    @unique
+  expiresAt  DateTime  @map("expires_at")
   acceptedAt DateTime? @map("accepted_at")
+
   createdAt DateTime @default(now()) @map("created_at")
+
   @@map("invitations")
 }
 
@@ -152,55 +203,41 @@ model AuditLog {
   tenant   Tenant  @relation(fields: [tenantId], references: [id])
   userId   String? @map("user_id")
   user     User?   @relation(fields: [userId], references: [id])
-  action     String
-  resource   String?
-  result     String
-  ipAddress  String? @map("ip_address")
-  metadata   Json?
+
+  action    String
+  resource  String?
+  result    String
+  ipAddress String? @map("ip_address")
+  metadata  Json?
+
   createdAt DateTime @default(now()) @map("created_at")
+
   @@index([tenantId, createdAt])
   @@map("audit_logs")
 }
 
-// ============================================================================
-// CODES D'ACCÈS — seul moyen de paiement actif pour l'instant.
-// Vente directe hors application (espèces, transfert Wave/OM manuel, revendeur).
-// Le décompte démarre à la PREMIÈRE UTILISATION (redeemedAt), jamais à la
-// génération. Un code LIFETIME n'a pas de date d'expiration (periodDays = null).
-//
-// SÉCURITÉ ANTI-PARTAGE :
-// - Un code ne peut être activé qu'UNE SEULE FOIS (transition atomique
-//   UNUSED -> ACTIVE au niveau base de données, protégée contre les doubles
-//   activations simultanées — voir AccessCodesService.redeem).
-// - L'e-mail et le tenant qui l'activent sont enregistrés de façon définitive
-//   (redeemedByEmail, tenantId) : un code déjà utilisé est refusé pour
-//   quiconque essaie de le réutiliser, y compris le premier acheteur.
-// - Pour un code LIFETIME, cette activation unique est PERMANENTE : la licence
-//   à vie reste rattachée à ce seul tenant pour toujours (aucune ré-activation
-//   possible ailleurs, même après suppression du compte).
-// ============================================================================
 model AccessCode {
   id   String @id @default(uuid())
-  code String @unique // format lisible ex: MG-7F3K-9XQ2-P1LM
+  code String @unique
 
-  batchId  String? @map("batch_id") // regroupe un lot généré ensemble (export/suivi)
+  batchId  String?      @map("batch_id")
   plan     LicensePlan
   duration CodeDuration
 
-  periodDays Int?    @map("period_days") // null pour LIFETIME (aucune expiration)
+  periodDays Int? @map("period_days")
 
-  priceFcfa   Int?    @map("price_fcfa") // prix de vente indicatif pour le lot
-  soldChannel String? @map("sold_channel") // ex: "Vente en personne", "Transfert Wave"
+  priceFcfa   Int?    @map("price_fcfa")
+  soldChannel String? @map("sold_channel")
 
   status AccessCodeStatus @default(UNUSED)
 
-  tenantId        String?   @map("tenant_id") // verrouillé définitivement après activation
-  redeemedByEmail String?   @map("redeemed_by_email") // e-mail de l'utilisateur qui a activé le code
+  tenantId        String?   @map("tenant_id")
+  redeemedByEmail String?   @map("redeemed_by_email")
   redeemedAt      DateTime? @map("redeemed_at")
-  expiresAt       DateTime? @map("expires_at") // = redeemedAt + periodDays, null si LIFETIME
+  expiresAt       DateTime? @map("expires_at")
 
   createdAt DateTime @default(now()) @map("created_at")
-  createdBy String?  @map("created_by") // userId de l'admin qui a généré le lot
+  createdBy String?  @map("created_by")
 
   tenant Tenant? @relation(fields: [tenantId], references: [id])
 
