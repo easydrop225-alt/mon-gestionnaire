@@ -23,6 +23,7 @@ model Tenant {
   auditLogs   AuditLog[]
   invitations Invitation[]
   accessCodes AccessCode[]
+  products    Product[]
 
   @@map("tenants")
 }
@@ -247,6 +248,7 @@ model AccessCode {
 }
 
 enum CodeDuration {
+  MONTHLY
   THREE_MONTHS
   SIX_MONTHS
   TWELVE_MONTHS
@@ -258,4 +260,28 @@ enum AccessCodeStatus {
   ACTIVE
   EXPIRED
   REVOKED
+}
+
+model Product {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  name          String
+  sku           String?
+  priceFcfa     Int          @map("price_fcfa")
+  stockQuantity Int          @default(0) @map("stock_quantity")
+  status        ProductStatus @default(ACTIVE)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@map("products")
+}
+
+enum ProductStatus {
+  ACTIVE
+  ARCHIVED
 }

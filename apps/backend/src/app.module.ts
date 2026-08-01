@@ -5,13 +5,13 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { LicensesModule } from './modules/licenses/licenses.module';
 import { AccessCodesModule } from './modules/access-codes/access-codes.module';
+import { ProductsModule } from './modules/products/products.module';
+import { PlatformAdminModule } from './modules/platform-admin/platform-admin.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 // NOTE : le paiement en ligne (CinetPay : Wave/Orange Money/Visa) est mis de côté
 // pour l'instant. Seul le système de codes d'accès (AccessCodesModule) est actif.
-// Pour réactiver CinetPay plus tard, réintroduire un PaymentsModule qui appelle
-// LicensesService.grantPeriod() exactement comme le fait AccessCodesService.
 
 @Module({
   imports: [
@@ -20,7 +20,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     AuthModule,
     LicensesModule,
     AccessCodesModule,
-    // Les modules métier (Produits, Stock, Clients, ...) s'enregistrent ici, phase par phase.
+    ProductsModule,
+    PlatformAdminModule,
+    // Les prochains modules métier (Stock, Clients, ...) s'enregistrent ici.
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

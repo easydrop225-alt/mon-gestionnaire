@@ -4,8 +4,8 @@ export class GenerateCodesDto {
   @IsIn(['STARTER', 'PRO', 'ENTERPRISE'])
   plan: 'STARTER' | 'PRO' | 'ENTERPRISE';
 
-  @IsIn(['THREE_MONTHS', 'SIX_MONTHS', 'TWELVE_MONTHS', 'LIFETIME'])
-  duration: 'THREE_MONTHS' | 'SIX_MONTHS' | 'TWELVE_MONTHS' | 'LIFETIME';
+  @IsIn(['MONTHLY', 'THREE_MONTHS', 'SIX_MONTHS', 'TWELVE_MONTHS', 'LIFETIME'])
+  duration: 'MONTHLY' | 'THREE_MONTHS' | 'SIX_MONTHS' | 'TWELVE_MONTHS' | 'LIFETIME';
 
   @IsInt() @Min(1) @Max(1000)
   quantity: number;

@@ -184,3 +184,62 @@ pas comme serveur qui reste allumé en permanence. Cela veut dire :
   suffisant pour nos endpoints actuels, mais à surveiller si tu ajoutes des traitements
   lourds (ex. génération de rapports volumineux) : ceux-là devront passer par une
   file de tâches en arrière-plan plutôt que par une requête HTTP directe.
+
+---
+
+## Application fonctionnelle (Phase 3 complétée)
+
+L'application dispose maintenant d'un parcours complet et réel :
+
+- **Inscription** (`/register`) : crée l'entreprise, l'administrateur, une licence d'essai 14 jours.
+- **Connexion** (`/login`) : authentification JWT réelle, tokens gérés automatiquement (rafraîchissement transparent).
+- **Tableau de bord** (`/dashboard`) : affiche la vraie licence de l'entreprise (plan, sièges, expiration ou accès à vie).
+- **Produits** (`/produits`) : premier module métier complet — créer, lister, supprimer des produits (CRUD réel relié à la base de données).
+- **Codes d'accès** (`/admin/codes`) : génère des lots de codes (3/6/12 mois ou à vie) directement depuis l'interface, avec copie en un clic — reste protégé par la permission `licenses.manage`.
+- **Abonnement** (`/abonnement`) : activation d'un code d'accès par l'utilisateur final.
+
+### Mise à jour de ta base Supabase existante
+
+Si ta base Supabase a déjà été initialisée avec le premier script SQL, exécute uniquement le complément fourni (`infra-supabase-add-products.sql`) — il n'ajoute que la table `products`, sans toucher au reste.
+
+### Prochaines étapes naturelles
+
+Stock, Clients, Fournisseurs, Commandes, Ventes, Livraisons — chacun suit exactement le même schéma que le module Produits (modèle Prisma → service → contrôleur → permissions → page frontend), donc chaque ajout futur sera rapide.
+
+---
+
+## Logo & icône d'application (PWA)
+
+Le logo fourni a été découpé automatiquement (le blason circulaire, sans le texte) et
+décliné dans toutes les tailles nécessaires : `apps/frontend/public/favicon.png`,
+`apple-touch-icon.png` (iPhone), `icon-192.png` / `icon-512.png` (Android/PWA), plus
+une variante `icon-maskable-512.png` avec marge de sécurité pour les icônes adaptatives
+Android. Le fichier `manifest.json` les référence déjà — quand un utilisateur "installe"
+l'app sur son téléphone ou son PC (Chrome propose ça automatiquement pour une PWA), c'est
+ce logo qui apparaît comme icône, pas une icône générique.
+
+## Durées d'abonnement (mise à jour)
+
+Les codes d'accès proposent maintenant : **Mensuel**, **3 mois**, **6 mois**, **1 an**,
+**Accès à vie**. Si ta base Supabase a déjà été initialisée, exécute le complément
+`infra-supabase-add-monthly.sql` (requête isolée, exigence Postgres pour l'ajout d'une
+valeur d'énumération).
+
+## Éditer un abonnement manuellement — console admin plateforme
+
+Une page séparée, protégée par un code secret (pas un compte utilisateur classique),
+te permet de consulter **toutes** les entreprises et d'ajuster n'importe quel abonnement
+à la main : `/platform-admin`.
+
+- Défini via la variable d'environnement `PLATFORM_ADMIN_SECRET` (backend) — génère une
+  valeur longue et aléatoire, ne la partage jamais, ne la commite jamais en clair.
+- Permet de changer le plan, le statut, le nombre de sièges, la date d'expiration, ou de
+  basculer en accès à vie, pour n'importe quelle entreprise.
+- **Garantie : cette action ne touche QUE la ligne de licence.** Réactiver un abonnement
+  expiré — même après plusieurs mois d'inactivité — restaure l'accès complet aux données
+  existantes de l'entreprise (produits, utilisateurs, historique). Rien n'est jamais
+  supprimé automatiquement quand une licence expire ou est suspendue : `LicenseGuard` se
+  contente de bloquer temporairement l'accès à l'API, il ne détruit jamais rien.
+
+⚠️ Ne partage jamais l'URL `/platform-admin` ni le code secret publiquement — c'est ta
+console à toi, pas une fonctionnalité cliente.
