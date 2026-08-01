@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mg_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mg_user
+      POSTGRES_PASSWORD: mg_password
+      POSTGRES_DB: mon_gestionnaire
+    ports: ["5432:5432"]
+    volumes: ["mg_postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mg_user -d mon_gestionnaire"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    container_name: mg_redis
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    volumes: ["mg_redis_data:/data"]
+volumes:
+  mg_postgres_data:
+  mg_redis_data:
