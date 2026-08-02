@@ -2,34 +2,41 @@ import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import express from 'express';
-import serverlessExpress from '@vendia/serverless-express';
 import { AppModule } from '../src/app.module';
 
 /**
  * Point d'entrée Vercel Serverless pour l'API NestJS.
  *
- * Vercel exécute cette fonction à froid (cold start) au premier appel, puis
- * réutilise l'instance ("warm") pour les appels suivants tant que le conteneur
- * reste actif — on met donc en cache l'app Nest + le handler Express entre
- * les invocations pour éviter de tout reconstruire à chaque requête.
+ * IMPORTANT : Vercel n'appelle PAS les fonctions Node.js au format "événement
+ * AWS Lambda" (event, context) — il les appelle exactement comme un serveur
+ * HTTP classique, avec (req, res) bruts, à la façon d'Express. On transmet
+ * donc directement la requête à l'application Express sous-jacente créée par
+ * Nest, sans passer par un traducteur d'événements Lambda (ce que faisait
+ * @vendia/serverless-express, incompatible avec ce mode d'exécution — c'était
+ * la cause de l'erreur "Unable to determine event source based on event").
+ *
+ * L'app Nest est initialisée une seule fois puis réutilisée entre les
+ * invocations "chaudes" du conteneur serverless.
  */
-let cachedServer: ReturnType<typeof serverlessExpress> | undefined;
+const expressApp = express();
+let bootstrapPromise: Promise<void> | null = null;
 
-async function bootstrapServer() {
-  const expressApp = express();
+async function bootstrap() {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
 
   app.enableCors({ origin: process.env.FRONTEND_URL, credentials: true });
   app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+  );
 
   await app.init();
-  return serverlessExpress({ app: expressApp });
 }
 
 export default async function handler(req: any, res: any) {
-  if (!cachedServer) {
-    cachedServer = await bootstrapServer();
+  if (!bootstrapPromise) {
+    bootstrapPromise = bootstrap();
   }
-  return cachedServer(req, res);
+  await bootstrapPromise;
+  expressApp(req, res);
 }
