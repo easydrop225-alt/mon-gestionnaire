@@ -42,7 +42,11 @@ export class AuthService {
       const user = await tx.user.create({
         data: {
           tenantId: tenant.id, email: dto.email, phone: dto.phone, passwordHash,
-          firstName: dto.firstName, lastName: dto.lastName, status: 'PENDING',
+          firstName: dto.firstName, lastName: dto.lastName,
+          // Activé immédiatement : aucun service d'e-mail n'est encore branché
+          // pour la vérification. À remettre sur 'PENDING' + envoi d'e-mail
+          // quand le module Notifications sera construit.
+          status: 'ACTIVE', emailVerifiedAt: new Date(),
         },
       });
 
@@ -63,7 +67,7 @@ export class AuthService {
     });
 
     return {
-      message: 'Compte créé. Vérifiez votre e-mail pour activer votre compte.',
+      message: 'Compte créé avec succès. Vous pouvez vous connecter dès maintenant.',
       tenantId: result.tenant.id,
       userId: result.user.id,
     };
