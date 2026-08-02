@@ -7,6 +7,7 @@ import { LicensesModule } from './modules/licenses/licenses.module';
 import { AccessCodesModule } from './modules/access-codes/access-codes.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PlatformAdminModule } from './modules/platform-admin/platform-admin.module';
+import { HealthModule } from './modules/health/health.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
@@ -22,6 +23,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     AccessCodesModule,
     ProductsModule,
     PlatformAdminModule,
+    HealthModule,
     // Les prochains modules métier (Stock, Clients, ...) s'enregistrent ici.
   ],
   providers: [
