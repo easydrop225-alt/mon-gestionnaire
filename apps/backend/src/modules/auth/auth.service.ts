@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as argon2 from 'argon2';
+import { hashSecret, verifySecret } from '../../common/crypto/password.util';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
@@ -20,7 +20,7 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Un compte existe déjà avec cet e-mail.');
 
-    const passwordHash = await argon2.hash(dto.password);
+    const passwordHash = await hashSecret(dto.password);
     const slug = dto.tenantName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -76,7 +76,7 @@ export class AuthService {
       throw new UnauthorizedException('Compte temporairement verrouillé suite à plusieurs échecs.');
     }
 
-    const passwordValid = await argon2.verify(user.passwordHash, dto.password);
+    const passwordValid = await verifySecret(user.passwordHash, dto.password);
     if (!passwordValid) {
       await this.registerFailedAttempt(user.id);
       throw new UnauthorizedException('Identifiants invalides.');
@@ -100,7 +100,7 @@ export class AuthService {
       throw new UnauthorizedException('Session expirée. Merci de vous reconnecter.');
     }
 
-    const refreshValid = await argon2.verify(session.refreshTokenHash, refreshToken);
+    const refreshValid = await verifySecret(session.refreshTokenHash, refreshToken);
     if (!refreshValid) throw new UnauthorizedException('Refresh token invalide.');
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
@@ -126,7 +126,7 @@ export class AuthService {
       { sub: userId, sessionId },
       { secret: process.env.JWT_REFRESH_SECRET, expiresIn: `${REFRESH_EXPIRES_DAYS}d` },
     );
-    const refreshTokenHash = await argon2.hash(refreshToken);
+    const refreshTokenHash = await hashSecret(refreshToken);
 
     await this.prisma.session.create({
       data: {
