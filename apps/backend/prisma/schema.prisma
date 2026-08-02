@@ -34,6 +34,8 @@ enum TenantStatus {
   ACTIVE
   SUSPENDED
   CANCELLED
+
+  @@map("tenant_status")
 }
 
 model License {
@@ -62,6 +64,8 @@ enum LicensePlan {
   STARTER
   PRO
   ENTERPRISE
+
+  @@map("license_plan")
 }
 
 enum LicenseStatus {
@@ -70,6 +74,8 @@ enum LicenseStatus {
   PAST_DUE
   SUSPENDED
   CANCELLED
+
+  @@map("license_status")
 }
 
 model User {
@@ -110,6 +116,8 @@ enum UserStatus {
   ACTIVE
   DISABLED
   ARCHIVED
+
+  @@map("user_status")
 }
 
 model Role {
@@ -254,6 +262,8 @@ enum CodeDuration {
   SIX_MONTHS
   TWELVE_MONTHS
   LIFETIME
+
+  @@map("code_duration")
 }
 
 enum AccessCodeStatus {
@@ -261,6 +271,8 @@ enum AccessCodeStatus {
   ACTIVE
   EXPIRED
   REVOKED
+
+  @@map("access_code_status")
 }
 
 model Product {
@@ -285,4 +297,6 @@ model Product {
 enum ProductStatus {
   ACTIVE
   ARCHIVED
+
+  @@map("product_status")
 }
