@@ -1,31 +1,47 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
- * Garde d'accès RÉSERVÉE au propriétaire de la plateforme (toi), distincte du
- * système JWT par tenant. Nécessaire car "éditer l'abonnement de N'IMPORTE
- * QUELLE entreprise" est une opération transverse à tous les tenants — le
- * modèle RBAC normal (un admin de tenant ne gère que SON tenant) ne peut pas
- * s'appliquer ici par construction.
+ * Garde d'accès à la console admin plateforme — accepte DEUX méthodes :
  *
- * Fonctionnement volontairement simple : un secret partagé envoyé dans l'en-tête
- * `x-admin-secret`, comparé à la variable d'environnement PLATFORM_ADMIN_SECRET.
- * Suffisant pour un usage interne à faible fréquence (toi uniquement) ; si cet
- * accès doit un jour être ouvert à plusieurs personnes, le remplacer par un
- * vrai compte + rôle "super admin" en base.
+ * 1. Le secret partagé (`x-admin-secret`), utile en dépannage / amorçage.
+ * 2. Un compte Super Admin authentifié normalement (JWT via /auth/login),
+ *    identifié par `user.isSuperAdmin = true` — l'usage recommandé au
+ *    quotidien, avec une vraie identité personnelle plutôt qu'un mot de
+ *    passe partagé.
  */
 @Injectable()
 export class PlatformAdminGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+
     const providedSecret = request.headers['x-admin-secret'];
     const expectedSecret = process.env.PLATFORM_ADMIN_SECRET;
+    if (providedSecret && expectedSecret && providedSecret === expectedSecret) {
+      return true;
+    }
 
-    if (!expectedSecret) {
-      throw new UnauthorizedException('PLATFORM_ADMIN_SECRET non configuré côté serveur.');
+    const authHeader = request.headers['authorization'];
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.slice(7);
+        const payload: any = this.jwt.verify(token, { secret: process.env.JWT_ACCESS_SECRET });
+        const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+        if (user?.isSuperAdmin && user.status === 'ACTIVE' && !user.deletedAt) {
+          request.superAdmin = user;
+          return true;
+        }
+      } catch {
+        // Jeton invalide ou expiré — tombe sur le refus ci-dessous.
+      }
     }
-    if (!providedSecret || providedSecret !== expectedSecret) {
-      throw new UnauthorizedException('Accès administrateur plateforme refusé.');
-    }
-    return true;
+
+    throw new UnauthorizedException('Accès administrateur plateforme refusé.');
   }
 }

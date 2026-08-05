@@ -243,3 +243,35 @@ te permet de consulter **toutes** les entreprises et d'ajuster n'importe quel ab
 
 ⚠️ Ne partage jamais l'URL `/platform-admin` ni le code secret publiquement — c'est ta
 console à toi, pas une fonctionnalité cliente.
+
+---
+
+## Séparation Admin plateforme / Entreprises clientes (mise à jour)
+
+Deux univers bien distincts désormais :
+
+- **Compte client** (`/register`, `/login`) : un administrateur d'entreprise gère
+  UNIQUEMENT ses propres données (produits, futurs employés). Il ne génère plus
+  lui-même de codes d'accès — il les reçoit et les active sur `/abonnement`.
+- **Console admin plateforme** (`/platform-admin`, protégée par `PLATFORM_ADMIN_SECRET`) :
+  réservée à toi, l'éditeur du logiciel. Trois onglets :
+  - **Entreprises** : liste de toutes les entreprises inscrites avec filtres
+    (recherche par nom, statut de licence, plan), cartes de synthèse (total,
+    actifs, essais, en retard/suspendus, à vie), et édition de n'importe quel
+    abonnement — plan, statut, sièges, et calcul automatique de la date
+    d'expiration à partir d'une **durée** (Mensuel/3 mois/6 mois/12 mois/
+    Personnalisé) et d'une **date d'activation modifiable** (permet d'antidater
+    un paiement reçu en dehors de l'app, ou de programmer une activation future).
+  - **Codes d'accès** : génération de lots de codes à vendre (mêmes durées,
+    dont Personnalisé avec nombre de jours libre).
+  - **Tarifs** : grille éditable des prix par défaut (plan x durée), affichés
+    en tant qu'indication lors de la génération de codes.
+
+Comme précédemment : réactiver un abonnement expiré ne touche jamais aux
+données de l'entreprise (produits, utilisateurs) — uniquement la ligne `License`.
+
+### Mise à jour de ta base Supabase existante
+
+Exécute, dans l'ordre et séparément :
+1. `infra-supabase-add-custom-duration.sql`
+2. `infra-supabase-add-price-configs.sql`

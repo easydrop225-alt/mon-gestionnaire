@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, KeyRound, CreditCard, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, CreditCard, LogOut } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/produits', label: 'Produits', icon: Package },
-  { href: '/admin/codes', label: "Codes d'accès", icon: KeyRound },
   { href: '/abonnement', label: 'Abonnement', icon: CreditCard },
 ];
 

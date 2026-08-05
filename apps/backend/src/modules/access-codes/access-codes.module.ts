@@ -7,5 +7,6 @@ import { LicensesModule } from '../licenses/licenses.module';
   imports: [LicensesModule],
   controllers: [AccessCodesController],
   providers: [AccessCodesService],
+  exports: [AccessCodesService],
 })
 export class AccessCodesModule {}

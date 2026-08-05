@@ -21,7 +21,7 @@ export default function LoginPage() {
     const res = await login(email, password);
     setLoading(false);
     if (res.ok) {
-      router.push('/dashboard');
+      router.push(res.isSuperAdmin ? '/platform-admin' : '/dashboard');
     } else {
       setError(res.message);
     }

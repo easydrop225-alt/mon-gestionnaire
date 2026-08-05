@@ -8,15 +8,23 @@
 
 const ACCESS_TOKEN_KEY = 'mg_access_token';
 const REFRESH_TOKEN_KEY = 'mg_refresh_token';
+const IS_SUPER_ADMIN_KEY = 'mg_is_super_admin';
 
-export function saveTokens(accessToken: string, refreshToken: string) {
+export function saveTokens(accessToken: string, refreshToken: string, isSuperAdmin = false) {
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  localStorage.setItem(IS_SUPER_ADMIN_KEY, isSuperAdmin ? '1' : '0');
+}
+
+export function isSuperAdmin(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(IS_SUPER_ADMIN_KEY) === '1';
 }
 
 export function clearTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(IS_SUPER_ADMIN_KEY);
 }
 
 export function getAccessToken() {

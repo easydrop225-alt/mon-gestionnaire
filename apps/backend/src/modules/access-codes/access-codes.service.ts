@@ -37,15 +37,25 @@ export class AccessCodesService {
   async generateBatch(params: {
     plan: 'STARTER' | 'PRO' | 'ENTERPRISE';
     duration: CodeDurationCode;
+    customDays?: number;
     quantity: number;
     priceFcfa?: number;
     soldChannel?: string;
     createdBy: string;
   }) {
     if (!PLANS[params.plan]) throw new BadRequestException('Plan inconnu.');
-    if (!(params.duration in DURATION_DAYS)) throw new BadRequestException('Durée inconnue.');
 
-    const periodDays = DURATION_DAYS[params.duration]; // null pour LIFETIME
+    let periodDays: number | null;
+    if (params.duration === 'CUSTOM') {
+      if (!params.customDays || params.customDays < 1) {
+        throw new BadRequestException('Merci de préciser un nombre de jours pour une durée personnalisée.');
+      }
+      periodDays = params.customDays;
+    } else {
+      if (!(params.duration in DURATION_DAYS)) throw new BadRequestException('Durée inconnue.');
+      periodDays = DURATION_DAYS[params.duration as Exclude<CodeDurationCode, 'CUSTOM'>];
+    }
+
     const batchId = randomUUID();
     const codes = Array.from({ length: params.quantity }, () => generateReadableCode());
 

@@ -6,12 +6,13 @@ import { useAuth } from '@/lib/auth-context';
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isSuperAdmin, isLoading } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
-    router.replace(isAuthenticated ? '/dashboard' : '/login');
-  }, [isLoading, isAuthenticated, router]);
+    if (!isAuthenticated) { router.replace('/login'); return; }
+    router.replace(isSuperAdmin ? '/platform-admin' : '/dashboard');
+  }, [isLoading, isAuthenticated, isSuperAdmin, router]);
 
   return null;
 }

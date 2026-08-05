@@ -48,6 +48,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       tenantId: user.tenantId,
       email: user.email,
       sessionId: session.id,
+      isSuperAdmin: user.isSuperAdmin,
       permissions: Array.from(new Set(permissionCodes)),
       license: user.tenant.license,
     };

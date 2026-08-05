@@ -4,6 +4,7 @@ import { hashSecret, verifySecret } from '../../common/crypto/password.util';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterSuperAdminDto } from './dto/register-super-admin.dto';
 import { LoginDto } from './dto/login.dto';
 
 const ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
@@ -73,6 +74,51 @@ export class AuthService {
     };
   }
 
+  /**
+   * Crée un compte Super Admin, totalement séparé de toute entreprise cliente.
+   * Ces comptes vivent dans un tenant technique dédié ("Plateforme"), invisible
+   * dans les listes d'entreprises clientes de la console admin.
+   * Protégé par le secret partagé (bootstrap) — voir AdminSecretGuard.
+   */
+  async registerSuperAdmin(dto: RegisterSuperAdminDto) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('Un compte existe déjà avec cet e-mail.');
+
+    const passwordHash = await hashSecret(dto.password);
+
+    // Réutilise le tenant technique "Plateforme" s'il existe déjà, le crée sinon.
+    const PLATFORM_SLUG = 'plateforme-administration';
+    let platformTenant = await this.prisma.tenant.findUnique({ where: { slug: PLATFORM_SLUG } });
+
+    if (!platformTenant) {
+      platformTenant = await this.prisma.tenant.create({
+        data: { name: 'Plateforme (Administration)', slug: PLATFORM_SLUG, status: 'ACTIVE' },
+      });
+      await this.prisma.license.create({
+        data: { tenantId: platformTenant.id, plan: 'ENTERPRISE', status: 'ACTIVE', isLifetime: true, seats: 999 },
+      });
+    }
+
+    const user = await this.prisma.user.create({
+      data: {
+        tenantId: platformTenant.id,
+        email: dto.email,
+        passwordHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        isSuperAdmin: true,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: { tenantId: platformTenant.id, userId: user.id, action: 'super_admin.created', result: 'success' },
+    });
+
+    return { message: 'Compte Super Admin créé avec succès. Vous pouvez vous connecter sur /login.', userId: user.id };
+  }
+
   async login(dto: LoginDto, meta: { ipAddress?: string; userAgent?: string }) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user || user.deletedAt) throw new UnauthorizedException('Identifiants invalides.');
@@ -88,7 +134,8 @@ export class AuthService {
     if (user.status !== 'ACTIVE') throw new UnauthorizedException('Compte non activé. Vérifiez votre e-mail.');
 
     await this.prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
-    return this.issueTokens(user.id, user.tenantId, user.email, meta);
+    const tokens = await this.issueTokens(user.id, user.tenantId, user.email, meta);
+    return { ...tokens, isSuperAdmin: user.isSuperAdmin };
   }
 
   async refresh(refreshToken: string) {

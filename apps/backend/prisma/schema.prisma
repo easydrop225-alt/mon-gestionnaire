@@ -95,6 +95,7 @@ model User {
   status     UserStatus @default(PENDING)
   mfaEnabled Boolean    @default(false) @map("mfa_enabled")
   mfaSecret  String?    @map("mfa_secret")
+  isSuperAdmin Boolean  @default(false) @map("is_super_admin")
 
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   lockedUntil         DateTime? @map("locked_until")
@@ -261,6 +262,7 @@ enum CodeDuration {
   THREE_MONTHS
   SIX_MONTHS
   TWELVE_MONTHS
+  CUSTOM
   LIFETIME
 
   @@map("code_duration")
@@ -299,4 +301,20 @@ enum ProductStatus {
   ARCHIVED
 
   @@map("product_status")
+}
+
+// ============================================================================
+// TARIFICATION — prix par défaut (plan x durée), gérés depuis la console
+// admin plateforme (/platform-admin). Utilisés pour préremplir le prix lors
+// de la génération de codes ; toujours modifiable au cas par cas.
+// ============================================================================
+model PriceConfig {
+  id        String       @id @default(uuid())
+  plan      LicensePlan
+  duration  CodeDuration
+  priceFcfa Int          @map("price_fcfa")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  @@unique([plan, duration])
+  @@map("price_configs")
 }
