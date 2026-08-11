@@ -49,11 +49,33 @@ export default function PlatformAdminPage() {
 
   useEffect(() => {
     if (isLoading) return;
-    if (!isAuthenticated) { router.replace('/login'); return; }
-    if (!isSuperAdmin) { router.replace('/dashboard'); }
+    // Un compte normal (non super admin) n'a rien à faire ici.
+    if (isAuthenticated && !isSuperAdmin) { router.replace('/dashboard'); }
   }, [isLoading, isAuthenticated, isSuperAdmin, router]);
 
-  if (isLoading || !isAuthenticated || !isSuperAdmin) return null;
+  if (isLoading) return null;
+  if (isAuthenticated && !isSuperAdmin) return null;
+
+  // Pas encore connecté : seule la création d'un premier compte Super Admin
+  // est proposée (protégée par le code secret) — pas d'accès à la console.
+  if (!isAuthenticated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="absolute right-6 top-6"><ThemeToggle /></div>
+        <div className="w-full max-w-md">
+          <div className="mb-6 text-center">
+            <ShieldCheck size={28} className="mx-auto mb-3 text-primary" />
+            <h1 className="text-lg font-semibold text-foreground">Créer votre compte administrateur</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Première utilisation : crée ton compte personnel, puis connecte-toi normalement sur{' '}
+              <a href="/login" className="font-medium text-primary hover:text-primary-hover">/login</a>.
+            </p>
+          </div>
+          <AccountTab />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
