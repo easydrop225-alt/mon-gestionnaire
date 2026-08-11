@@ -76,21 +76,37 @@ export async function apiFetch<T = any>(
     return fetch(`/api/v1${path}`, { ...options, headers });
   };
 
-  let token = getAccessToken();
-  let res = await doFetch(token);
+  try {
+    let token = getAccessToken();
+    let res = await doFetch(token);
 
-  // Le token a expiré (15 min) -> on tente un rafraîchissement automatique une fois.
-  if (res.status === 401 && getRefreshToken()) {
-    token = await refreshAccessToken();
-    if (token) res = await doFetch(token);
+    // Le token a expiré (15 min) -> on tente un rafraîchissement automatique une fois.
+    if (res.status === 401 && getRefreshToken()) {
+      token = await refreshAccessToken();
+      if (token) res = await doFetch(token);
+    }
+
+    const body: ApiResponse<T> = await res.json().catch(() => ({
+      success: false,
+      message: 'Réponse invalide du serveur.',
+      data: null as any,
+      errors: null,
+    }));
+
+    return { ok: res.ok && body.success, status: res.status, body };
+  } catch (err: any) {
+    // Échec réseau (serveur injoignable, CORS, etc.) — jamais d'exception non
+    // gérée ici, pour que les écrans appelants puissent toujours sortir de
+    // leur état "chargement" au lieu de rester bloqués indéfiniment.
+    return {
+      ok: false,
+      status: 0,
+      body: {
+        success: false,
+        message: `Impossible de contacter le serveur (${err?.message ?? 'erreur réseau'}).`,
+        data: null as any,
+        errors: null,
+      },
+    };
   }
-
-  const body: ApiResponse<T> = await res.json().catch(() => ({
-    success: false,
-    message: 'Réponse invalide du serveur.',
-    data: null as any,
-    errors: null,
-  }));
-
-  return { ok: res.ok && body.success, status: res.status, body };
 }

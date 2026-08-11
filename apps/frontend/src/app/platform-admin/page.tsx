@@ -129,15 +129,23 @@ function AccountTab() {
     e.preventDefault();
     setLoading(true);
     setResult(null);
-    const res = await fetch('/api/v1/auth/register-super-admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': bootstrapSecret },
-      body: JSON.stringify(form),
-    });
-    const json = await res.json();
-    setLoading(false);
-    setResult({ ok: res.ok, message: json.message ?? (res.ok ? 'Compte créé.' : "Échec de la création.") });
-    if (res.ok) setForm({ email: '', password: '', firstName: '', lastName: '' });
+    try {
+      const res = await fetch('/api/v1/auth/register-super-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': bootstrapSecret },
+        body: JSON.stringify(form),
+      });
+      const text = await res.text();
+      let json: any = {};
+      try { json = text ? JSON.parse(text) : {}; } catch { json = { message: text.slice(0, 300) }; }
+
+      setResult({ ok: res.ok, message: json.message ?? (res.ok ? 'Compte créé.' : `Échec (code ${res.status}).`) });
+      if (res.ok) setForm({ email: '', password: '', firstName: '', lastName: '' });
+    } catch (err: any) {
+      setResult({ ok: false, message: `Impossible de contacter le serveur : ${err?.message ?? 'erreur réseau'}` });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
