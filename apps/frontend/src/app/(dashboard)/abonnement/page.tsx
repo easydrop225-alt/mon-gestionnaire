@@ -6,10 +6,12 @@ import { KeyRound, CheckCircle2, Loader2, Infinity as InfinityIcon } from 'lucid
 import { DashboardShell } from '@/components/dashboard-shell';
 import { apiFetch } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
+import { useI18n } from '@/lib/i18n';
 
 export default function AbonnementPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
+  const { t } = useI18n();
   const [code, setCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -25,7 +27,7 @@ export default function AbonnementPage() {
       method: 'POST',
       body: JSON.stringify({ code }),
     });
-    setResult({ ok, message: body.message ?? (ok ? 'Code activé avec succès.' : 'Code invalide.') });
+    setResult({ ok, message: body.message ?? (ok ? 'OK' : 'Error') });
     setRedeeming(false);
   }
 
@@ -39,16 +41,14 @@ export default function AbonnementPage() {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <KeyRound size={22} />
             </div>
-            <h1 className="text-lg font-semibold text-foreground">Activer votre abonnement</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Entrez le code d'accès reçu lors de votre achat (3 mois, 6 mois, 12 mois ou accès à vie).
-            </p>
+            <h1 className="text-lg font-semibold text-foreground">{t('subscription_title')}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t('subscription_subtitle')}</p>
           </div>
 
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="MG-XXXX-XXXX-XXXX"
+            placeholder={t('subscription_placeholder')}
             className="mb-3 w-full rounded border border-border bg-background px-3 py-2.5 text-center text-sm tracking-wider text-foreground outline-none ring-primary/30 placeholder:text-muted-foreground focus:ring-2"
           />
 
@@ -58,7 +58,7 @@ export default function AbonnementPage() {
             className="flex w-full items-center justify-center gap-2 rounded bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
           >
             {redeeming ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-            Activer le code
+            {t('subscription_activate')}
           </button>
 
           {result && (
@@ -69,7 +69,7 @@ export default function AbonnementPage() {
 
           <div className="mt-6 flex items-center justify-center gap-2 rounded border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
             <InfinityIcon size={14} />
-            Un code "Accès à vie" ne peut être utilisé qu'une seule fois, par une seule boutique.
+            {t('subscription_lifetime_note')}
           </div>
         </div>
       </div>

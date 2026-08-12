@@ -2,20 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, CreditCard, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, CreditCard, LogOut, Settings, HelpCircle } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 import { useAuth } from '@/lib/auth-context';
+import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/produits', label: 'Produits', icon: Package },
-  { href: '/abonnement', label: 'Abonnement', icon: CreditCard },
-];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const { t } = useI18n();
+
+  const NAV_ITEMS = [
+    { href: '/dashboard', label: t('nav_dashboard'), icon: LayoutDashboard },
+    { href: '/produits', label: t('nav_products'), icon: Package },
+    { href: '/abonnement', label: t('nav_subscription'), icon: CreditCard },
+    { href: '/parametres', label: t('nav_settings'), icon: Settings },
+    { href: '/aide', label: t('nav_help'), icon: HelpCircle },
+  ];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -51,7 +55,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           className="flex items-center gap-2.5 rounded px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <LogOut size={16} />
-          Se déconnecter
+          {t('nav_logout')}
         </button>
       </aside>
 

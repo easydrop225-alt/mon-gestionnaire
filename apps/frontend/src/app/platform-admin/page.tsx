@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ShieldCheck, Loader2, Save, Users, Package, Search, Building2,
-  KeyRound, DollarSign, Copy, Check, UserPlus,
+  KeyRound, DollarSign, Copy, Check, UserPlus, HelpCircle, Layers, Activity, Infinity as InfinityIcon,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/lib/auth-context';
@@ -45,7 +45,7 @@ interface TenantRow {
 export default function PlatformAdminPage() {
   const router = useRouter();
   const { isAuthenticated, isSuperAdmin, isLoading, logout } = useAuth();
-  const [tab, setTab] = useState<'tenants' | 'codes' | 'pricing' | 'account'>('tenants');
+  const [tab, setTab] = useState<'tenants' | 'codes' | 'pricing' | 'account' | 'help'>('tenants');
 
   useEffect(() => {
     if (isLoading) return;
@@ -96,6 +96,7 @@ export default function PlatformAdminPage() {
           { id: 'codes', label: "Codes d'accès", icon: KeyRound },
           { id: 'pricing', label: 'Tarifs', icon: DollarSign },
           { id: 'account', label: 'Comptes admin', icon: UserPlus },
+          { id: 'help', label: 'Aide', icon: HelpCircle },
         ].map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id as any)}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
@@ -111,6 +112,7 @@ export default function PlatformAdminPage() {
         {tab === 'codes' && <CodesTab />}
         {tab === 'pricing' && <PricingTab />}
         {tab === 'account' && <AccountTab />}
+        {tab === 'help' && <HelpTab />}
       </div>
     </div>
   );
@@ -564,6 +566,100 @@ function PricingTab() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ONGLET AIDE — explication détaillée de chaque élément (côté admin)
+// ============================================================================
+function HelpTab() {
+  return (
+    <div className="mx-auto max-w-3xl">
+      <AdminSection icon={Layers} title="Les plans (Starter / Pro / Enterprise)">
+        <p>
+          Le plan détermine les fonctionnalités et le nombre de sièges accordés à une entreprise
+          lorsqu'elle active un code d'accès ou paie un abonnement.
+        </p>
+        <ul className="mt-2 space-y-1.5 list-disc pl-5">
+          <li><strong>Starter</strong> — 3 sièges. Produits, stock, clients (fonctions de base).</li>
+          <li><strong>Pro</strong> — 10 sièges. Ajoute synchronisation Google Sheets/Excel + rapports avancés.</li>
+          <li><strong>Enterprise</strong> — 50 sièges. Ajoute SSO + export du journal d'audit.</li>
+        </ul>
+      </AdminSection>
+
+      <AdminSection icon={Users} title="Sièges (seats / seatsUsed)">
+        <p>
+          <strong>Sièges</strong> = nombre maximum d'utilisateurs autorisés pour cette entreprise
+          (défini par son plan). <strong>Sièges utilisés</strong> = nombre de comptes déjà créés.
+          Tu peux ajuster manuellement ce nombre dans l'onglet Entreprises si un client négocie un
+          nombre de sièges différent du standard de son plan.
+        </p>
+      </AdminSection>
+
+      <AdminSection icon={Activity} title="Statuts de licence">
+        <ul className="space-y-2">
+          <li><strong>TRIAL (Essai)</strong> — période de découverte gratuite, 14 jours par défaut à l'inscription.</li>
+          <li><strong>ACTIVE (Actif)</strong> — abonnement payé et à jour, accès complet.</li>
+          <li><strong>PAST_DUE (Paiement en retard)</strong> — à utiliser si un renouvellement traîne, sans couper l'accès immédiatement.</li>
+          <li><strong>SUSPENDED (Suspendu)</strong> — bloque l'accès à l'API pour cette entreprise. Ses données restent intactes.</li>
+          <li><strong>CANCELLED (Annulé)</strong> — abonnement résilié. Les données restent conservées, réactivable à tout moment.</li>
+        </ul>
+      </AdminSection>
+
+      <AdminSection icon={KeyRound} title="Durées et date d'activation">
+        <p className="mb-2">
+          <strong>Mensuel / 3 mois / 6 mois / 12 mois</strong> — durées standards, calculées en jours
+          (30/90/180/365) à partir de la date d'activation.
+        </p>
+        <p className="mb-2">
+          <strong>Personnalisé</strong> — tu précises toi-même le nombre de jours exact (utile pour un
+          forfait sur-mesure négocié avec un client).
+        </p>
+        <p>
+          <strong>Date d'activation</strong> (dans l'édition d'une entreprise) — par défaut aujourd'hui,
+          mais modifiable : utile pour antidater un paiement reçu hors application (ex: reçu la semaine
+          dernière) ou programmer une activation future.
+        </p>
+      </AdminSection>
+
+      <AdminSection icon={InfinityIcon} title="Accès à vie">
+        <p>
+          N'expire jamais (<code>currentPeriodEnd</code> = null, <code>isLifetime</code> = true). Un
+          code "Accès à vie" ne peut être activé qu'une seule fois, de façon permanente et
+          irréversible pour l'entreprise qui l'active — vérifie bien l'identité du client avant
+          d'en distribuer, la valeur est élevée.
+        </p>
+      </AdminSection>
+
+      <AdminSection icon={DollarSign} title="Tarifs (onglet Tarifs)">
+        <p>
+          Grille de prix par défaut (plan x durée) affichée pour t'aider lors de la génération de
+          codes — un simple repère, tu peux toujours saisir un prix différent au cas par cas dans
+          l'onglet Codes d'accès.
+        </p>
+      </AdminSection>
+
+      <AdminSection icon={ShieldCheck} title="Garantie : aucune perte de données">
+        <p>
+          Modifier ou même annuler l'abonnement d'une entreprise (onglet Entreprises) ne touche
+          JAMAIS à ses produits, utilisateurs ou historique. Seule la ligne de licence est modifiée.
+          Réactiver un abonnement — même après plusieurs mois d'inactivité — restaure l'accès complet
+          aux données existantes, intactes.
+        </p>
+      </AdminSection>
+    </div>
+  );
+}
+
+function AdminSection({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-5 rounded-lg border border-border bg-surface p-5">
+      <div className="mb-3 flex items-center gap-2">
+        <Icon size={17} className="text-primary" />
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      </div>
+      <div className="text-sm leading-relaxed text-muted-foreground">{children}</div>
     </div>
   );
 }
